@@ -1,0 +1,4 @@
+dependencies:
+  espressif/cmake_utilities: "0.*"
+  espressif/button: "=*"
+  idf: ">=4.4"
