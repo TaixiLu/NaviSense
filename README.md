@@ -1,35 +1,4 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
-
-# _Sample project_
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
-
-
-
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
-
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+AProject brief
+This project aims to enhance the safety and independence of visually impaired individuals living alone by utilising assistive navigational tools. These tools will enable users to navigate their homes while minimising risks of injuries or accidents, using non-visual cues such as touch and sound. The solution will focus on integrating with existing tools, enabling seamless, independent navigation and allowing users to adapt to changes in their home environment. The system is designed to be user-friendly, easy to set up alone, and suitable for mid-level economy households. Additionally, the project aims to have consistent and dependable hazard detection, with reliable performance and effective communication of the surrounding environment to the user. Some key considerations include user control, ease of use, and integration into daily life without disrupting other technologies.
+Problem space
+Visually impaired individuals living independently face significant challenges and risks when navigating their homes. Simple tasks such as moving from one room to another or locating items can become daunting and result in injuries or accidents. Traditional methods of navigating rely heavily on memory, spatial awareness, and touch, but these are often not enough for ensuring safety, especially if they have only recently relocated or there are changes in the environment, such as during renovations. Furthermore, current assistive technologies can be tedious to use, requiring visual interfaces or complex setups, which is not very practical for visually impaired users. This emphasises the need for a more intuitive, user-friendly solution that provides real-time, non-visual guidance to enhance safety and independence within domestic environments. By developing a system that provides touch and auditory signals, we aim to bridge this gap, enabling our users to navigate their homes confidently and safely.
