@@ -6,7 +6,7 @@
 
 ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, int uart_num_src, QueueHandle_t queue)
 {
-  uart_num = uart_num_src;
+  uart_num = (uart_port_t)uart_num_src;
   cmd_in_queue = queue; // Store the queue for signaling other tasks
 
   const uart_config_t uart_config = {
@@ -19,9 +19,9 @@ ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, int uart_num_src, QueueHandle_t queue)
   };
 
   // Install UART driver
-  ESP_ERROR_CHECK(uart_driver_install((uart_port_t)uart_num, UART_BUF_SIZE, UART_BUF_SIZE, 10, &uart_queue, 0));
-  ESP_ERROR_CHECK(uart_param_config((uart_port_t)uart_num, &uart_config));
-  ESP_ERROR_CHECK(uart_set_pin((uart_port_t)uart_num, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+  ESP_ERROR_CHECK(uart_driver_install(uart_num, UART_BUF_SIZE, UART_BUF_SIZE, 10, &uart_queue, 0));
+  ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+  ESP_ERROR_CHECK(uart_set_pin(uart_num, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
   // Create a task to handle UART events
   xTaskCreate(uart_event_task, "uart_event_task", 2048, this, 12, NULL);
@@ -29,7 +29,7 @@ ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, int uart_num_src, QueueHandle_t queue)
 
 ASR_PRO::~ASR_PRO()
 {
-  uart_driver_delete((uart_port_t)uart_num);
+  uart_driver_delete(uart_num);
 }
 
 void ASR_PRO::uart_event_task(void *pvParameters)
@@ -46,7 +46,7 @@ void ASR_PRO::uart_event_task(void *pvParameters)
       bzero(dtmp, UART_BUF_SIZE);
       if (event.type == UART_DATA)
       {
-        int len = uart_read_bytes((uart_port_t)(asr->uart_num), dtmp, sizeof(ASR_PRO_cmd_frame), pdMS_TO_TICKS(200));
+        int len = uart_read_bytes((asr->uart_num), dtmp, sizeof(ASR_PRO_cmd_frame), pdMS_TO_TICKS(200));
         if (len > 0)
         {
           asr->process_received_data(dtmp, len);
@@ -76,5 +76,5 @@ void ASR_PRO::process_received_data(uint8_t *data, int len)
 void ASR_PRO::send_cmd(ASR_PRO_cmd_Out cmd, uint8_t data)
 {
   ASR_PRO_cmd_frame frame(cmd, data);
-  uart_write_bytes((uart_port_t)uart_num, (const char *)&frame, sizeof(frame));
+  uart_write_bytes(uart_num, (const char *)&frame, sizeof(frame));
 }

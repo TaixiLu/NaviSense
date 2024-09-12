@@ -55,7 +55,7 @@ struct ASR_PRO_cmd_frame
 class ASR_PRO
 {
 private:
-  int uart_num;
+  uart_port_t uart_num;
   QueueHandle_t uart_queue;   // For UART events
   QueueHandle_t cmd_in_queue; // For signaling received commands
 
