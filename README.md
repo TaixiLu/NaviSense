@@ -5,3 +5,7 @@ The device is wearable, resembling a neckband or belt. It uses four ultrasonic s
 It tracks the user’s speed and adjusts its sensitivity. By adjusting the sensitivity, the trigger threshold of the warning system can be adjusted to avoid producing alarms too early or too late. The device also supports adjusting sensitivity manually using voice commands to give users more flexibility. 
 Additionally, it estimates battery levels using the battery voltage to provide low battery warning.
 
+
+Build:
+
+To build this project, install VS Code and ESP IDF. Then simply clone and open this project folder.
