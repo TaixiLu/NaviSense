@@ -13,5 +13,3 @@ To build this project, install VS Code and ESP IDF 5.2.2. Then simply clone and 
 
 TODO:
 See: Speed_estimator.cpp
-
-Structure logic controls 
