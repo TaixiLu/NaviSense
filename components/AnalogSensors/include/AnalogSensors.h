@@ -7,8 +7,6 @@
 
 #define ADC_BAT_RATIO 3.272
 
-// #define bat_ADC_EN
-
 class AnalogSensors
 {
 public:
@@ -17,16 +15,12 @@ public:
 
     float get_temperature();
 
-#ifdef bat_ADC_EN
     float get_bat_V();
-#endif
 
 private:
     temperature_sensor_handle_t temp_handle;
-#ifdef bat_ADC_EN
     ADC1_DMA *adc_dma;
     adc_channel_t bat_ADC_CH;
 
     KFP bat_KFP;
-#endif
 };

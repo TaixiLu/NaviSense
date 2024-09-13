@@ -29,9 +29,9 @@ private:
     float distance_buff = 0;
     TaskHandle_t IMU_heartbeat_task_handle = nullptr;
 
-    // 构造器
 public:
     Speed_estimator();
+    ~Speed_estimator();
 
     static void IMU_heartbeat(void *param);
     void set_INS_speed(float spd);

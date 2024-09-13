@@ -1,12 +1,6 @@
 
 #include "Fitful_IO.h"
 
-Fitful_IO_PWM *beeper;
-Fitful_IO_PWM *head_light;
-Fitful_IO_PWM *tail_light;
-Fitful_IO_base *horn_plug;
-Fitful_IO_PWM *custom_plug;
-
 Fitful_IO_base::Fitful_IO_base()
 {
 

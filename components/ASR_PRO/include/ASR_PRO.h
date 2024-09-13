@@ -22,7 +22,7 @@ typedef enum : uint8_t
 typedef enum : uint8_t
 {
   ASR_PRO_Ready = 125,      // Send when ASR is finish initialization
-  ASR_PRO_Wake,             // send when ASR is wake and waiting voice command, use "data" to represent start/end
+  ASR_PRO_Busy,             // send when ASR is wake and waiting voice command, use "data" to represent start/end
   ASR_PRO_Battery_Inquiry,  // Inquiry the battery level, answered by ASR_PRO_Battery_Answer
   ASR_PRO_Sensitivity_Set,  // Set Sensitivity, use "data" to represent sensitivity percentage, answered by ASR_PRO_Sensitivity_Answer
   ASR_PRO_Alarm_Switch_Set, // Turn on alarm, use "data" to represent on/off, answered by ASR_PRO_Alarm_On_Answer/ASR_PRO_Alarm_Off_Answer

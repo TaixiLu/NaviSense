@@ -9,3 +9,9 @@ Additionally, it estimates battery levels using the battery voltage to provide l
 Build:
 
 To build this project, install VS Code and ESP IDF 5.2.2. Then simply clone and open this project folder.
+
+
+TODO:
+See: Speed_estimator.cpp
+
+Structure logic controls 

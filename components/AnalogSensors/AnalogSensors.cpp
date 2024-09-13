@@ -5,9 +5,7 @@
 
 const char *SENSOR_TAG = "AnalogSensors:";
 
-#ifdef bat_ADC_EN
 #define PIN_bat_ADC GPIO_NUM_10
-#endif
 
 AnalogSensors::AnalogSensors()
 {
@@ -20,7 +18,6 @@ AnalogSensors::AnalogSensors()
     ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor, &temp_handle));
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_handle));
 
-#ifdef bat_ADC_EN
     adc_unit_t unit;
     std::set<adc_channel_t> chs;
     ESP_ERROR_CHECK(adc_continuous_io_to_channel(PIN_bat_ADC, &unit, &bat_ADC_CH));
@@ -29,13 +26,10 @@ AnalogSensors::AnalogSensors()
 
     KFP_init(&bat_KFP, 0.1, 0.1);
     get_bat_V();
-#endif
 }
 AnalogSensors::~AnalogSensors()
 {
-#ifdef bat_ADC_EN
     delete adc_dma;
-#endif
 }
 
 float AnalogSensors::get_temperature()
@@ -44,7 +38,6 @@ float AnalogSensors::get_temperature()
     temperature_sensor_get_celsius(temp_handle, &tsens_out);
     return tsens_out;
 }
-#ifdef bat_ADC_EN
 float AnalogSensors::get_bat_V()
 {
     ESP_LOGI(SENSOR_TAG, "bat_V");
@@ -55,4 +48,3 @@ float AnalogSensors::get_bat_V()
     ESP_LOGI(SENSOR_TAG, "bat_V: %f", rtn);
     return rtn;
 }
-#endif

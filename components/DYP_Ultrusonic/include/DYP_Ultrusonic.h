@@ -4,6 +4,7 @@
 #include "freertos/queue.h"
 #include "driver/uart.h"
 #include "DYP_Frame.h"
+#include "Differential_Timer.h"
 
 class DYP_Ultrusonic
 {
@@ -11,9 +12,10 @@ private:
   uart_port_t uart_num;
   QueueHandle_t uart_queue;
   uint16_t distance[4];
+  TaskHandle_t uart_event_task_handle = nullptr;
+  Timer_milli recv_Timer;
 
   static void uart_event_task(void *pvParameters);
-  void process_received_data(uint8_t *data, int len);
 
 public:
   DYP_Ultrusonic(int tx_pin, int rx_pin, int uart_num_src);

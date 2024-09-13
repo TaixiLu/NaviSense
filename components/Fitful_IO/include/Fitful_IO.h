@@ -98,9 +98,3 @@ private:
   ledc_channel_t pwm_ch;
   uint16_t pulse_width = 255;
 };
-
-extern Fitful_IO_PWM *beeper;
-extern Fitful_IO_PWM *head_light;
-extern Fitful_IO_PWM *tail_light;
-extern Fitful_IO_base *horn_plug;
-extern Fitful_IO_PWM *custom_plug;

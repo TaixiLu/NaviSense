@@ -20,7 +20,8 @@ DYP_Ultrusonic::DYP_Ultrusonic(int tx_pin, int rx_pin, int uart_num_src)
   uart_param_config(uart_num, &uart_config);
   uart_set_pin(uart_num, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
   uart_driver_install(uart_num, UART_BUFFER_SIZE, UART_BUFFER_SIZE, UART_EVENT_QUEUE_SIZE, &uart_queue, 0);
-  xTaskCreate(uart_event_task, "uart_event_task", 2048, this, 10, NULL);
+  xTaskCreatePinnedToCore(DYP_Ultrusonic::uart_event_task, "uart_event_task", 2048,
+                          this, configMAX_PRIORITIES - 1, &uart_event_task_handle, 0);
 }
 DYP_Ultrusonic::~DYP_Ultrusonic()
 {
@@ -33,7 +34,7 @@ void DYP_Ultrusonic::uart_event_task(void *pvParameters)
   uart_event_t event;
   uint8_t *data = (uint8_t *)malloc(UART_BUFFER_SIZE);
 
-  for (;;)
+  for (; uart_is_driver_installed(ultrasonic->uart_num);)
   {
     if (xQueueReceive(ultrasonic->uart_queue, (void *)&event, portMAX_DELAY))
     {
@@ -51,6 +52,7 @@ void DYP_Ultrusonic::uart_event_task(void *pvParameters)
             {
               ultrasonic->distance[i] = frame.get_sensor_distance(i);
             }
+            ultrasonic->recv_Timer.start();
             ESP_LOGI(TAG, "Sensor 1: %d mm, Sensor 2: %d mm, Sensor 3: %d mm, Sensor 4: %d mm",
                      ultrasonic->distance[0], ultrasonic->distance[1],
                      ultrasonic->distance[2], ultrasonic->distance[3]);
@@ -73,7 +75,7 @@ void DYP_Ultrusonic::uart_event_task(void *pvParameters)
 
 uint16_t DYP_Ultrusonic::get_distance(uint8_t sensor_index)
 {
-  if (sensor_index < 4)
+  if (sensor_index < 4 || recv_Timer.elapsed() > 500)
     return distance[sensor_index];
   else
     return 0xFFFF;
