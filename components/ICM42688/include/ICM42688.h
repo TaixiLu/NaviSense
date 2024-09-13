@@ -6,6 +6,12 @@
 
 #pragma once
 
+#define PIN_IMU_EN GPIO_NUM_47
+#define PIN_IMU_INT2 GPIO_NUM_48
+#define PIN_IMU_INT1 GPIO_NUM_35
+#define PIN_IMU_SCL GPIO_NUM_13
+#define PIN_IMU_SDA GPIO_NUM_12
+
 #ifdef __cplusplus
 extern "C"
 {
