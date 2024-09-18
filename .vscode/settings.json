@@ -9,7 +9,7 @@
     },
     "idf.espIdfPathWin": "C:\\Users\\Taixi\\esp\\v5.2.2\\esp-idf",
     "idf.openOcdConfigs": [
-        "board/esp32-wrover-kit-3.3v.cfg"
+        "board/esp32s3-builtin.cfg"
     ],
     "idf.pythonBinPathWin": "C:\\Espressif\\python_env\\idf5.2_py3.11_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "C:\\Espressif",
@@ -88,5 +88,6 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "idf.portWin": "COM4"
 }

@@ -46,18 +46,20 @@ struct DYP_UART_frame
     // 获取传感器数据
     uint16_t get_sensor_distance(uint8_t sensor_index) const
     {
+        uint16_t rtn = 0xFFFF; // 返回0xFFFF表示错误的传感器编号或传感器检测不到值
         switch (sensor_index)
         {
         case 0:
-            return (sensor1_high << 8) | sensor1_low;
+            rtn = (sensor1_high << 8) | sensor1_low;
         case 1:
-            return (sensor2_high << 8) | sensor2_low;
+            rtn = (sensor2_high << 8) | sensor2_low;
         case 2:
-            return (sensor3_high << 8) | sensor3_low;
+            rtn = (sensor3_high << 8) | sensor3_low;
         case 3:
-            return (sensor4_high << 8) | sensor4_low;
-        default:
-            return 0xFFFF; // 返回0xFFFF表示错误的传感器编号
+            rtn = (sensor4_high << 8) | sensor4_low;
         }
+        if (rtn == 0)
+            rtn = 0xFFFF;
+        return rtn;
     }
 };

@@ -31,9 +31,9 @@ extern "C" void app_main(void)
     io_init();
     xTaskCreatePinnedToCore(logic_Task, "logic", 1000 + configMINIMAL_STACK_SIZE,
                             nullptr, configMAX_PRIORITIES - 4, NULL, 0);
-    xTaskCreatePinnedToCore(voice_interface_Task, "voice_interface", 1000 + configMINIMAL_STACK_SIZE,
+    xTaskCreatePinnedToCore(voice_interface_Task, "voice_interface", 2000 + configMINIMAL_STACK_SIZE,
                             nullptr, configMAX_PRIORITIES - 5, NULL, 0);
-    xTaskCreatePinnedToCore(battery_task, "voice_interface", 500 + configMINIMAL_STACK_SIZE,
+    xTaskCreatePinnedToCore(battery_task, "battery_task", 2000 + configMINIMAL_STACK_SIZE,
                             nullptr, configMAX_PRIORITIES - 6, NULL, 1);
 }
 void logic_Task(void *param)
@@ -41,6 +41,7 @@ void logic_Task(void *param)
     DYP_Ultrusonic distanceSensors(PIN_DYP_TX, PIN_DYP_RX, UART_NUM_2);
     Fitful_IO_PWM beeper(LEDC_CHANNEL_0, 255);
     Speed_estimator speed_estimator;
+    // beeper.begin(100, 100, 2);
 
     for (;;)
     {
@@ -49,11 +50,14 @@ void logic_Task(void *param)
         complimentary_angle_t curr_angle = speed_estimator.get_angles();
         for (int i = 0; i < 4; i++)
         {
-            corrected_distance[i] =
-                distanceSensors.get_distance(i) * cos(sensor_mount_angle[i]) *
-                cos(sensor_mount_pitch[i] + curr_angle.pitch);
-            if (min_distance > corrected_distance[i])
-                min_distance = corrected_distance[i];
+            uint16_t dist_tmp = distanceSensors.get_distance(i);
+            if (dist_tmp < 5000)
+            {
+                corrected_distance[i] = dist_tmp * cos(sensor_mount_angle[i]) *
+                                        cos(sensor_mount_pitch[i] + curr_angle.pitch);
+                if (min_distance > corrected_distance[i])
+                    min_distance = corrected_distance[i];
+            }
         }
         cur_distance = min_distance;
         float predict_speed = speed_estimator.updateSpeed(min_distance);
@@ -62,17 +66,24 @@ void logic_Task(void *param)
             sensitivity = 1;
 
         float alarm_level = 0; // 0~1, 1 being max
-        if (min_distance < ALARM_MIN_DIST)
-            alarm_level = 1;
-        else if (min_distance < ALARM_MAX_DIST)
-            alarm_level = 1 - (min_distance - ALARM_MIN_DIST) / (ALARM_MAX_DIST - ALARM_MIN_DIST);
+        if (parameters.Alarm_sw)
+        {
+            if (min_distance < ALARM_MIN_DIST)
+                alarm_level = 1;
+            else if (min_distance < ALARM_MAX_DIST)
+                alarm_level = 1 - (min_distance - ALARM_MIN_DIST) / (ALARM_MAX_DIST - ALARM_MIN_DIST);
+        }
 
-        if (parameters.Alarm_sw && alarm_level != 0)
+        ESP_LOGI("Logic", "cur_distance: %0.2f, predict_speed: %0.2f, sensitivity: %0.2f, alarm_level: %0.2f",
+                 cur_distance, predict_speed, sensitivity, alarm_level);
+
+        if (alarm_level != 0)
         {
             beeper.update_pulseWidth((BEEPER_MAX_PWM - BEEPER_MIN_PWM) * alarm_level - BEEPER_MIN_PWM);
             if (!beeper.is_busy())
                 beeper.begin(BEEPER_ON_TIME, BEEPER_OFF_MIN_TIME + alarm_level * (BEEPER_OFF_MAX_TIME - BEEPER_OFF_MIN_TIME), 1);
         }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 void voice_interface_Task(void *param)
@@ -119,7 +130,13 @@ void io_init()
 {
     gpio_config_t en_gpio_config = {};
     en_gpio_config.mode = GPIO_MODE_OUTPUT;
-    en_gpio_config.pin_bit_mask = (1ULL << PIN_BEEP);
+    en_gpio_config.pin_bit_mask =
+        // (1ULL << PIN_POW_LED) |
+        // (1ULL << PIN_12V_EN) |
+        // (1ULL << PIN_PMOS_SW) |
+        // (1ULL << PIN_CAN_EN) |
+        (1ULL << PIN_IMU_EN) |
+        (1ULL << PIN_BEEP);
     ESP_ERROR_CHECK(gpio_config(&en_gpio_config));
     ledc_timer_config_t ledc_timer = {
         .speed_mode = LEDC_LOW_SPEED_MODE,   // timer mode
@@ -139,6 +156,7 @@ void io_init()
         .hpoint = 0,
         .flags = {false}};
     ledc_channel_config(&ledc_channel);
+    gpio_set_level(PIN_IMU_EN, 1);
 }
 
 void battery_task(void *param)
@@ -157,7 +175,8 @@ void battery_task(void *param)
     {
         float tmp_battery_volt = analogSensors.get_bat_V();
 
-        battery.heartbeat(analogSensors.get_bat_V(), 200);
+        battery.heartbeat(analogSensors.get_bat_V());
+        // ESP_LOGI("Battery", "bat: %f", battery.get_percentage());
 
         vTaskDelay(pdMS_TO_TICKS(50));
     }

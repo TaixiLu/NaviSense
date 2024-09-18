@@ -35,7 +35,7 @@ Speed_estimator::Speed_estimator()
     last_INS_odo_update_timer.start();
     D_Timer.start();
     xTaskCreatePinnedToCore(Speed_estimator::IMU_heartbeat, "IMU_heartbeat",
-                            2000 + configMINIMAL_STACK_SIZE, this, configMAX_PRIORITIES,
+                            2000 + configMINIMAL_STACK_SIZE, this, configMAX_PRIORITIES - 1,
                             &IMU_heartbeat_task_handle, 1);
 }
 Speed_estimator::~Speed_estimator()
