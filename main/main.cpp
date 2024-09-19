@@ -41,7 +41,7 @@ void logic_Task(void *param)
     DYP_Ultrusonic distanceSensors(PIN_DYP_TX, PIN_DYP_RX, UART_NUM_2);
     Fitful_IO_PWM beeper(LEDC_CHANNEL_0, 255);
     Speed_estimator speed_estimator;
-    // beeper.begin(100, 100, 2);
+    beeper.begin(100, 100, 2);
 
     for (;;)
     {
