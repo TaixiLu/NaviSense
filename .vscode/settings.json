@@ -7,7 +7,7 @@
         "IDF_CCACHE_ENABLE": "1",
         "ESP_ROM_ELF_DIR": "C:\\Espressif\\tools\\esp-rom-elfs\\20230320/"
     },
-    "idf.espIdfPathWin": "C:\\Users\\28068\\esp\\v5.2.2\\esp-idf",
+    "idf.espIdfPathWin": "C:\\Users\\Taixi\\esp\\v5.2.2\\esp-idf",
     "idf.openOcdConfigs": [
         "board/esp32s3-builtin.cfg"
     ],
@@ -89,5 +89,6 @@
         "typeinfo": "cpp",
         "variant": "cpp"
     },
-    "idf.portWin": "COM4"
+    "idf.portWin": "COM4",
+    "idf.gitPathWin": "C:\\Espressif\\tools\\idf-git\\2.39.2\\cmd\\git.exe"
 }
