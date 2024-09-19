@@ -29,6 +29,14 @@ private:
     float distance_buff = 0;
     TaskHandle_t IMU_heartbeat_task_handle = nullptr;
 
+
+
+    // 新增的成员变量
+    float angular_velocity_z;    // 存储Z轴角速度
+    float distance_history[5];   // 保存最近5次距离数据
+    int history_index = 0;       // 记录当前历史数据索引
+    float distance_variance;     // 距离变化的方差
+
 public:
     Speed_estimator();
     ~Speed_estimator();
@@ -40,4 +48,7 @@ public:
     // 计算实时速度, 先获取实时时间算出时间差
     float updateSpeed(float cur_distance); // cur_distance in cm
     complimentary_angle_t get_angles();
+
+    // 计算方差的函数
+    float calculateVariance(float* data, int length);
 };
