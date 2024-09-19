@@ -2,9 +2,9 @@
 #include "esp_log.h"
 #include <cstring>
 
-#define UART_BUF_SIZE (4 * sizeof(ASR_PRO_cmd_frame))
+#define UART_BUF_SIZE 256
 
-ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, int uart_num_src, QueueHandle_t queue)
+ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, uart_port_t uart_num_src, QueueHandle_t queue)
 {
   uart_num = (uart_port_t)uart_num_src;
   cmd_in_queue = queue; // Store the queue for signaling other tasks
@@ -24,7 +24,8 @@ ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, int uart_num_src, QueueHandle_t queue)
   ESP_ERROR_CHECK(uart_set_pin(uart_num, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
   // Create a task to handle UART events
-  xTaskCreate(uart_event_task, "uart_event_task", 2048, this, 12, NULL);
+  xTaskCreatePinnedToCore(ASR_PRO::uart_event_task, "ASR_uart_event_task", 2000 + configMINIMAL_STACK_SIZE,
+                          this, configMAX_PRIORITIES - 10, &uart_event_task_handle, 0);
 }
 
 ASR_PRO::~ASR_PRO()
@@ -38,7 +39,7 @@ void ASR_PRO::uart_event_task(void *pvParameters)
   uart_event_t event;
   uint8_t dtmp[UART_BUF_SIZE];
 
-  while (true)
+  for (; uart_is_driver_installed(asr->uart_num);)
   {
     // Wait for UART event
     if (xQueueReceive(asr->uart_queue, (void *)&event, portMAX_DELAY))

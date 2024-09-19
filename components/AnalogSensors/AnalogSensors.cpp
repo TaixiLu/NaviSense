@@ -40,11 +40,11 @@ float AnalogSensors::get_temperature()
 }
 float AnalogSensors::get_bat_V()
 {
-    ESP_LOGI(SENSOR_TAG, "bat_V");
+    // ESP_LOGI(SENSOR_TAG, "bat_V");
     float rtn = adc_dma->getmV(bat_ADC_CH) / 1000 * ADC_BAT_RATIO;
     if (rtn < 0)
         return 0;
     rtn = kalmanFilter(&bat_KFP, rtn);
-    ESP_LOGI(SENSOR_TAG, "bat_V: %f", rtn);
+    // ESP_LOGI(SENSOR_TAG, "bat_V: %f", rtn);
     return rtn;
 }

@@ -30,7 +30,7 @@ typedef enum : uint8_t
 } ASR_PRO_cmd_In;
 
 #define ASR_PRO_SOF 0xFF
-struct ASR_PRO_cmd_frame
+typedef struct __attribute__((packed, aligned(1))) ASR_PRO_cmd_frame
 {
   uint8_t SOF = ASR_PRO_SOF;
   uint8_t cmd;
@@ -50,7 +50,7 @@ struct ASR_PRO_cmd_frame
   {
     return check_sum == (SOF + cmd + data);
   }
-};
+} ASR_PRO_cmd_frame;
 
 class ASR_PRO
 {
@@ -58,12 +58,13 @@ private:
   uart_port_t uart_num;
   QueueHandle_t uart_queue;   // For UART events
   QueueHandle_t cmd_in_queue; // For signaling received commands
+  TaskHandle_t uart_event_task_handle = nullptr;
 
   static void uart_event_task(void *pvParameters);
   void process_received_data(uint8_t *data, int len);
 
 public:
-  ASR_PRO(int tx_pin, int rx_pin, int uart_num_src, QueueHandle_t queue);
+  ASR_PRO(int tx_pin, int rx_pin, uart_port_t uart_num_src, QueueHandle_t queue);
   ~ASR_PRO();
   void send_cmd(ASR_PRO_cmd_Out cmd, uint8_t data = 0);
 };
