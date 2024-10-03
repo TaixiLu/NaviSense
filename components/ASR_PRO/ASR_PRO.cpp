@@ -10,7 +10,7 @@ ASR_PRO::ASR_PRO(int tx_pin, int rx_pin, uart_port_t uart_num_src, QueueHandle_t
   cmd_in_queue = queue; // Store the queue for signaling other tasks
 
   const uart_config_t uart_config = {
-      .baud_rate = 9600,
+      .baud_rate = 115200,
       .data_bits = UART_DATA_8_BITS,
       .parity = UART_PARITY_DISABLE,
       .stop_bits = UART_STOP_BITS_1,
@@ -47,7 +47,20 @@ void ASR_PRO::uart_event_task(void *pvParameters)
       bzero(dtmp, UART_BUF_SIZE);
       if (event.type == UART_DATA)
       {
-        int len = uart_read_bytes((asr->uart_num), dtmp, sizeof(ASR_PRO_cmd_frame), pdMS_TO_TICKS(200));
+        int len;
+        do
+        {
+          len = uart_read_bytes((asr->uart_num), dtmp, 1, pdMS_TO_TICKS(200));
+          // ESP_LOGI("ASR_PRO", "Check SOF: 0x%02X", dtmp[0]);
+        } while (len == 1 && dtmp[0] != ASR_PRO_SOF);
+        if (len != 1)
+          continue;
+
+        len = 1 + uart_read_bytes((asr->uart_num), dtmp + 1, sizeof(ASR_PRO_cmd_frame), pdMS_TO_TICKS(200));
+        // ESP_LOGI("ASR_PRO", "recieve len: %d data: ", len);
+        // for (int i = 0; i < len; i++)
+        //   printf("0x%02X", dtmp[i]);
+        // printf("\n");
         if (len > 0)
         {
           asr->process_received_data(dtmp, len);
@@ -69,6 +82,7 @@ void ASR_PRO::process_received_data(uint8_t *data, int len)
       ASR_PRO_cmd_message msg;
       msg.cmd = frame.cmd;
       msg.data = frame.data;
+      // ESP_LOGI("ASR_PRO", "Recieve cmd: %d data: %d", msg.cmd, msg.data);
       xQueueSend(cmd_in_queue, &msg, portMAX_DELAY);
     }
   }

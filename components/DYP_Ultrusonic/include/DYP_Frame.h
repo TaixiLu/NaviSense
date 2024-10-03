@@ -1,7 +1,7 @@
 #pragma once
 #define DYP_UART_SOF 0xFF // Start of Frame
 
-struct DYP_UART_frame
+struct __attribute__((packed, aligned(1))) DYP_UART_frame
 {
     uint8_t SOF = DYP_UART_SOF; // 帧头
     uint8_t sensor1_high;       // 1号传感器数据高8位
@@ -39,8 +39,8 @@ struct DYP_UART_frame
     // 校验校验和
     bool check_checksum() const
     {
-        return checksum == (SOF + sensor1_high + sensor1_low + sensor2_high + sensor2_low +
-                            sensor3_high + sensor3_low + sensor4_high + sensor4_low);
+        return checksum == (uint8_t)(SOF + sensor1_high + sensor1_low + sensor2_high + sensor2_low +
+                                     sensor3_high + sensor3_low + sensor4_high + sensor4_low);
     }
 
     // 获取传感器数据
@@ -51,12 +51,16 @@ struct DYP_UART_frame
         {
         case 0:
             rtn = (sensor1_high << 8) | sensor1_low;
+            break;
         case 1:
             rtn = (sensor2_high << 8) | sensor2_low;
+            break;
         case 2:
             rtn = (sensor3_high << 8) | sensor3_low;
+            break;
         case 3:
             rtn = (sensor4_high << 8) | sensor4_low;
+            break;
         }
         if (rtn == 0)
             rtn = 0xFFFF;

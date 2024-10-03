@@ -30,23 +30,23 @@ DYP_Ultrusonic::~DYP_Ultrusonic()
 
 void DYP_Ultrusonic::uart_event_task(void *pvParameters)
 {
-  DYP_Ultrusonic *ultrasonic = static_cast<DYP_Ultrusonic *>(pvParameters);
+  DYP_Ultrusonic *DYP = static_cast<DYP_Ultrusonic *>(pvParameters);
   uart_event_t event;
   uint8_t *data = (uint8_t *)malloc(UART_BUFFER_SIZE);
 
-  for (; uart_is_driver_installed(ultrasonic->uart_num);)
+  for (; uart_is_driver_installed(DYP->uart_num);)
   {
-    if (xQueueReceive(ultrasonic->uart_queue, (void *)&event, portMAX_DELAY))
+    if (xQueueReceive(DYP->uart_queue, (void *)&event, portMAX_DELAY))
     {
       if (event.type == UART_DATA)
       {
         do
         {
-          if (0 == uart_read_bytes(ultrasonic->uart_num, data, 1, pdMS_TO_TICKS(50)))
+          if (0 == uart_read_bytes(DYP->uart_num, data, 1, pdMS_TO_TICKS(50)))
             continue;
         } while (data[0] != DYP_UART_SOF);
 
-        int len = uart_read_bytes(ultrasonic->uart_num, data + 1, sizeof(DYP_UART_frame) - 1, pdMS_TO_TICKS(50));
+        int len = uart_read_bytes(DYP->uart_num, data + 1, sizeof(DYP_UART_frame) - 1, pdMS_TO_TICKS(50));
         if (len + 1 == sizeof(DYP_UART_frame)) // 确保数据长度正确
         {
           DYP_UART_frame frame;
@@ -61,16 +61,20 @@ void DYP_Ultrusonic::uart_event_task(void *pvParameters)
           {
             for (int i = 0; i < 4; i++)
             {
-              ultrasonic->distance[i] = frame.get_sensor_distance(i);
+              DYP->distance[i] = frame.get_sensor_distance(i);
             }
-            ultrasonic->recv_Timer.start();
+            ESP_LOGI(TAG, "refresh time %d", (int)DYP->recv_Timer.elapsed());
+            DYP->recv_Timer.start();
+            DYP->new_data = true;
             // ESP_LOGI(TAG, "Sensor 1: %d mm, Sensor 2: %d mm, Sensor 3: %d mm, Sensor 4: %d mm",
-            //          ultrasonic->distance[0], ultrasonic->distance[1],
-            //          ultrasonic->distance[2], ultrasonic->distance[3]);
+            //          DYP->distance[0], DYP->distance[1],
+            //          DYP->distance[2], DYP->distance[3]);
           }
           else
           {
-            ESP_LOGW(TAG, "Invalid checksum");
+            ESP_LOGW(TAG, "Invalid checksum 0x%02X vs 0x%02X", frame.checksum,
+                     (uint8_t)(frame.SOF + frame.sensor1_high + frame.sensor1_low + frame.sensor2_high +
+                               frame.sensor2_low + frame.sensor3_high + frame.sensor3_low + frame.sensor4_high + frame.sensor4_low));
           }
         }
         else
@@ -86,7 +90,8 @@ void DYP_Ultrusonic::uart_event_task(void *pvParameters)
 
 uint16_t DYP_Ultrusonic::get_distance(uint8_t sensor_index)
 {
-  if (sensor_index < 4 || recv_Timer.elapsed() > 500)
+  new_data = false;
+  if (sensor_index < 4 && recv_Timer.elapsed() < 500)
     return distance[sensor_index];
   else
     return 0xFFFF;

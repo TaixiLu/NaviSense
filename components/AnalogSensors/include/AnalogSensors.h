@@ -5,7 +5,7 @@
 #include "ADC.h"
 #include "DataFilter.h"
 
-#define ADC_BAT_RATIO 3.272
+#define ADC_BAT_RATIO 4.17
 
 class AnalogSensors
 {

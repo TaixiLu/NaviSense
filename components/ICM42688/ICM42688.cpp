@@ -408,13 +408,13 @@ esp_err_t icm42688_complimentory_filter(icm42688_handle_t sensor, const icm42688
         sens->dt = (float)(dt_t.tv_sec) + (float)dt_t.tv_usec / 1000000;
         gettimeofday(sens->timer, NULL);
 
-        acce_angle[1] = (atan2(acce_value->y, acce_value->z) * RAD_TO_DEG);
-        acce_angle[0] = (atan2(acce_value->x, acce_value->z) * RAD_TO_DEG);
+        acce_angle[1] = (atan2(acce_value->y, acce_value->z) * RAD_TO_DEG); // pitch
+        acce_angle[0] = (atan2(acce_value->x, acce_value->y) * RAD_TO_DEG); // roll
 
         gyro_rate[1] = gyro_value->x;
-        gyro_rate[0] = -gyro_value->y;
-        gyro_angle[1] = complimentary_angle->pitch + gyro_rate[0] * sens->dt;
-        gyro_angle[0] = complimentary_angle->roll + gyro_rate[1] * sens->dt;
+        gyro_rate[0] = gyro_value->z;
+        gyro_angle[1] = complimentary_angle->pitch + gyro_rate[1] * sens->dt;
+        gyro_angle[0] = complimentary_angle->roll + gyro_rate[0] * sens->dt;
         for (int i = 0; i < 2; i++)
         {
             if (acce_angle[i] > 90 && gyro_angle[i] < -90)
@@ -422,6 +422,10 @@ esp_err_t icm42688_complimentory_filter(icm42688_handle_t sensor, const icm42688
             if (acce_angle[i] < -90 && gyro_angle[i] > 90)
                 gyro_angle[i] -= 360;
         }
+
+        // ESP_LOGI(TAG, "gyro_roll: %+3.2f = prev_roll: %+3.2f gyro_dif: %+3.2f    gyro_pitch: %+3.2f = prev_pitch: %+3.2f + gyro_dif: %+3.2f   ",
+        //          gyro_angle[0], complimentary_angle->roll, gyro_rate[0] * sens->dt,
+        //          gyro_angle[1], complimentary_angle->pitch, gyro_rate[1] * sens->dt);
 
         complimentary_angle->roll = (ALPHA * gyro_angle[0]) + ((1 - ALPHA) * acce_angle[0]);
         complimentary_angle->pitch = (ALPHA * gyro_angle[1]) + ((1 - ALPHA) * acce_angle[1]);
@@ -450,10 +454,13 @@ esp_err_t icm42688_complimentory_filter(icm42688_handle_t sensor, const icm42688
     //          acce_value->x, acce_value->y, acce_value->z,
     //          gyro_value->x, gyro_value->y, gyro_value->z,
     //          complimentary_angle->roll, complimentary_angle->pitch);
-    // ESP_LOGI(TAG, "ACC:(%+02.3f, %+02.3f, %+02.3f)      acce_roll: %f   gyro_roll: %f   roll: %f      acce_pitch: %f   gyro_pitch: %f   pitch: %f",
+
+    // ESP_LOGI(TAG, "ACC:(%+02.3f, %+02.3f, %+02.3f)      acce_roll: %+3.2f gyro_dif: %+3.2f  gyro_roll: %+3.2f   roll: %+3.2f      acce_pitch: %+3.2f  gyro_dif: %+3.2f gyro_pitch: %+3.2f   pitch: %+3.2f",
     //          acce_value->x, acce_value->y, acce_value->z,
-    //          acce_angle[0], gyro_angle[0], complimentary_angle->roll,
-    //          acce_angle[1], gyro_angle[1], complimentary_angle->pitch);
+    //          acce_angle[0], gyro_rate[0] * sens->dt, gyro_angle[0], complimentary_angle->roll,
+    //          acce_angle[1], gyro_rate[1] * sens->dt, gyro_angle[1], complimentary_angle->pitch);
+
+    // ESP_LOGI(TAG, "roll: %+3.2f pitch: %+3.2f", complimentary_angle->roll, complimentary_angle->pitch);
     return ESP_OK;
 }
 

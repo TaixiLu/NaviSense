@@ -5,6 +5,16 @@
 #include "ICM42688.h"
 #include "DataFilter.h"
 
+#define DIST_SPD_MAX_WEIGHT 0.3
+#define ANG_SPD_INTERVAL_UPPER 20
+#define DIST_VAR_INTERVAL_UPPER 15000
+#define DIST_VAR_SIZE 3
+#define ACC_VAR_INTERVAL_UPPER 0.05
+#define ACC_VAR_SIZE 300
+#define VAR_WEIGHT_MIN 0.1
+
+#define MAX_SPD_HURD 1.5 // m/s
+
 class Speed_estimator
 {
 private:
@@ -16,10 +26,8 @@ private:
     complimentary_angle_t angle_value;
     KFP angle_roll_KFP;
     KFP angle_pitch_KFP;
-    KFP expected_speed_KFP;
     complimentary_angle_t tansformed_angle_value;
     icm42688_value_t pure_acceleration;
-    icm42688_value_t tansformed_acceleration;
     Timer_micro last_INS_update_timer;
     float INS_spd_buf = 0;
     Timer_micro last_INS_odo_update_timer;
@@ -28,14 +36,12 @@ private:
     double INS_odo_buf = 0;
     float distance_buff = 0;
     TaskHandle_t IMU_heartbeat_task_handle = nullptr;
+    float speed_distance = 0; // 基于距离计算的速度
+    KFP speed_distance_KFP;
+    variance *distance_var;
+    variance *acc_var;
 
-
-
-    // 新增的成员变量
-    float angular_velocity_z;    // 存储Z轴角速度
-    float distance_history[5];   // 保存最近5次距离数据
-    int history_index = 0;       // 记录当前历史数据索引
-    float distance_variance;     // 距离变化的方差
+    float map_interval(float curr_val, float lower_bound, float upper_bound);
 
 public:
     Speed_estimator();
@@ -46,9 +52,7 @@ public:
     float get_INS_speed();
     float get_INS_odo();
     // 计算实时速度, 先获取实时时间算出时间差
-    float updateSpeed(float cur_distance); // cur_distance in cm
+    void set_distance(float cur_distance); // cur_distance in mm
+    float updateSpeed();
     complimentary_angle_t get_angles();
-
-    // 计算方差的函数
-    float calculateVariance(float* data, int length);
 };

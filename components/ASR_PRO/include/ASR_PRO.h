@@ -12,17 +12,18 @@ typedef struct
 
 typedef enum : uint8_t
 {
-  ASR_PRO_Low_Battery = 0,     // Low Battery please charge the device
+  ASR_PRO_SYS_Ready = 0,
+  ASR_PRO_Low_Battery,         // Low Battery please charge the device
   ASR_PRO_Battery_Answer,      // Battery xx percent left
   ASR_PRO_Sensitivity_Answer,  // Sensitivity set to xx percent
   ASR_PRO_Alarm_Switch_Answer, // Alarm turned on/off
   ASR_PRO_Distance_Answer,     // Distance to closist obstacal is xx cm
+
 } ASR_PRO_cmd_Out;
 
 typedef enum : uint8_t
 {
   ASR_PRO_Ready = 125,      // Send when ASR is finish initialization
-  ASR_PRO_Busy,             // send when ASR is wake and waiting voice command, use "data" to represent start/end
   ASR_PRO_Battery_Inquiry,  // Inquiry the battery level, answered by ASR_PRO_Battery_Answer
   ASR_PRO_Sensitivity_Set,  // Set Sensitivity, use "data" to represent sensitivity percentage, answered by ASR_PRO_Sensitivity_Answer
   ASR_PRO_Alarm_Switch_Set, // Turn on alarm, use "data" to represent on/off, answered by ASR_PRO_Alarm_On_Answer/ASR_PRO_Alarm_Off_Answer
@@ -48,7 +49,7 @@ typedef struct __attribute__((packed, aligned(1))) ASR_PRO_cmd_frame
   }
   bool check_check_sum()
   {
-    return check_sum == (SOF + cmd + data);
+    return check_sum == (uint8_t)(SOF + cmd + data);
   }
 } ASR_PRO_cmd_frame;
 
