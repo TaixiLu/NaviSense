@@ -169,8 +169,8 @@ float Speed_estimator::updateSpeed()
 
     if (final_speed > MAX_SPD_HURD)
         final_speed = MAX_SPD_HURD;
-    else if (final_speed < -MAX_SPD_HURD)
-        final_speed = -MAX_SPD_HURD;
+    else if (final_speed < MIN_SPD_HURD)
+        final_speed = MIN_SPD_HURD;
 
     // ESP_LOGI("SE", "distance_variance_cast: %+0.2f acc_variance_cast: %+0.4f  turning_spd_cast:%+0.2f  speed_distance_weight:%+0.2f speed_distance:%+0.2f final_speed:%+0.2f",
     //          map_interval(distance_variance, 0, DIST_VAR_INTERVAL_UPPER), map_interval(acc_variance, 0, ACC_VAR_INTERVAL_UPPER),

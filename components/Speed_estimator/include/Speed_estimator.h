@@ -5,15 +5,16 @@
 #include "ICM42688.h"
 #include "DataFilter.h"
 
-#define DIST_SPD_MAX_WEIGHT 0.3
+#define DIST_SPD_MAX_WEIGHT 0.1
 #define ANG_SPD_INTERVAL_UPPER 20
-#define DIST_VAR_INTERVAL_UPPER 15000
-#define DIST_VAR_SIZE 3
+#define DIST_VAR_INTERVAL_UPPER 20000
+#define DIST_VAR_SIZE 4
 #define ACC_VAR_INTERVAL_UPPER 0.05
 #define ACC_VAR_SIZE 300
 #define VAR_WEIGHT_MIN 0.1
 
-#define MAX_SPD_HURD 1.5 // m/s
+#define MAX_SPD_HURD 1.5 // m/s cant exceeed 2.55
+#define MIN_SPD_HURD -1  // m/s
 
 class Speed_estimator
 {

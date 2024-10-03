@@ -28,6 +28,7 @@ Parameters parameters;
 float corrected_distance[4];
 float cur_distance;
 bool ASR_is_ready = false;
+float predict_speed = 0;
 QueueHandle_t ASR_PRO_msg_queue = xQueueCreate(10, sizeof(ASR_PRO_cmd_message));
 ASR_PRO asr_pro(PIN_ASR_TX, PIN_ASR_RX, UART_NUM_1, ASR_PRO_msg_queue);
 
@@ -57,11 +58,14 @@ void logic_Task(void *param)
 
     ESP_LOGI("Logic", "System Ready!!!!!!!!!!");
     Timer_milli dist_unavailable_alarm_timer;
+    Timer_milli alarm_sw_voice_timer;
+    bool curr_alarm_sw = true;
+    bool param_alarm_sw_buf = true;
     for (;;)
     {
         complimentary_angle_t curr_angle = speed_estimator.get_angles();
         bool angle_ctl_alarm_sw = false;
-        if (fabs(curr_angle.pitch + 90) < 30 && (fabs(curr_angle.roll) - 180) < 30)
+        if (fabs(curr_angle.pitch + 90) < 45 && (fabs(curr_angle.roll) - 180) < 30)
             angle_ctl_alarm_sw = true;
 
         if (distanceSensors.have_new_data())
@@ -97,55 +101,60 @@ void logic_Task(void *param)
             speed_estimator.set_INS_speed(0);
         }
 
-        float predict_speed = speed_estimator.updateSpeed();
-        float curr_sensitivity = 0;
-
-        if (parameters.Alarm_sw != angle_ctl_alarm_sw)
+        if (cur_distance <= 100 && dist_unavailable_alarm_timer.elapsed() > 10000)
         {
-            parameters.Alarm_sw = angle_ctl_alarm_sw;
-            asr_pro.send_cmd(ASR_PRO_Alarm_Switch_Answer, parameters.Alarm_sw);
+            asr_pro.send_cmd(ASR_PRO_Distance_Answer, 0);
+            dist_unavailable_alarm_timer.start();
         }
 
-        if (parameters.Alarm_sw)
+        float curr_sensitivity = 0;
+        predict_speed = fabs(speed_estimator.updateSpeed());
+        if (predict_speed > FULLSTOP_SPD_THRESHHOLD)
         {
-            if (cur_distance <= 200)
-            {
-                if (dist_unavailable_alarm_timer.elapsed() > 60 * 1000)
-                {
-                    asr_pro.send_cmd(ASR_PRO_Distance_Answer, 0);
-                    dist_unavailable_alarm_timer.start();
-                }
-            }
+            if (predict_speed > MAXSPD_THRESHHOLD)
+                curr_sensitivity = parameters.sensitivity;
             else
-                dist_unavailable_alarm_timer.clear();
-
-            if (fabs(predict_speed) > FULLSTOP_SPD_THRESHHOLD)
             {
-                if (fabs(predict_speed) > MAXSPD_THRESHHOLD)
+                curr_sensitivity = parameters.sensitivity *
+                                   (predict_speed - FULLSTOP_SPD_THRESHHOLD) * (MAXSPD_THRESHHOLD - FULLSTOP_SPD_THRESHHOLD);
+                if (curr_sensitivity > 1)
                     curr_sensitivity = 1;
-                else
-                {
-                    curr_sensitivity = parameters.sensitivity *
-                                       (predict_speed - FULLSTOP_SPD_THRESHHOLD) * (MAXSPD_THRESHHOLD - FULLSTOP_SPD_THRESHHOLD);
-                    // float curr_sensitivity = 0.5;
-                    if (curr_sensitivity > 1)
-                        curr_sensitivity = 1;
-                    if (curr_sensitivity < 0)
-                        curr_sensitivity = 0;
-                }
+                if (curr_sensitivity < 0)
+                    curr_sensitivity = 0;
             }
+        }
 
-            float alarm_level = 0; // 0~1, 1 being max
-            if (curr_sensitivity != 0)
+        bool new_alarm_sw = angle_ctl_alarm_sw && parameters.Alarm_sw && curr_sensitivity > 0;
+        if (curr_alarm_sw != new_alarm_sw)
+        {
+            if ((alarm_sw_voice_timer.elapsed() > 5000 || (new_alarm_sw && alarm_sw_voice_timer.elapsed() > 1200)))
             {
-                if (cur_distance < ALARM_MIN_DIST)
-                    alarm_level = 1;
-                else if (cur_distance < ALARM_MAX_DIST)
-                    alarm_level = 1 - (cur_distance - ALARM_MIN_DIST) / (ALARM_MAX_DIST - ALARM_MIN_DIST);
+                alarm_sw_voice_timer.start();
+                if (parameters.Alarm_sw == param_alarm_sw_buf)
+                    asr_pro.send_cmd(ASR_PRO_Alarm_Pause_Answer, new_alarm_sw);
+                else
+                    param_alarm_sw_buf = parameters.Alarm_sw;
+                curr_alarm_sw = new_alarm_sw;
+                // if (curr_sensitivity == 0)
+                // {
+                //     ESP_LOGI("alarm_pause", "spd: %0.2f m/s", predict_speed);
+                //     asr_pro.send_cmd(ASR_PRO_Speed_Answer, predict_speed * 100);
+                // }
             }
+        }
+        else if (curr_sensitivity <= 0)
+            alarm_sw_voice_timer.start();
 
-            // ESP_LOGI("Logic", "ALARM_MAX_DIST:%0.2f, cur_distance:%0.2f, predict_speed: %+0.2f, sensitivity: %0.2f, alarm_level: %0.2f",
-            //          ALARM_MAX_DIST, cur_distance, predict_speed, curr_sensitivity, alarm_level);
+        if (curr_alarm_sw)
+        {
+            float alarm_level = 0; // 0~1, 1 being max
+            if (cur_distance < ALARM_MIN_DIST)
+                alarm_level = 1;
+            else if (cur_distance < ALARM_MAX_DIST)
+                alarm_level = 1 - (cur_distance - ALARM_MIN_DIST) / (ALARM_MAX_DIST - ALARM_MIN_DIST);
+
+            ESP_LOGI("Logic", "ALARM_MAX_DIST:%0.2f, cur_distance:%0.2f, predict_speed: %+0.2f, sensitivity: %0.2f, alarm_level: %0.2f",
+                     ALARM_MAX_DIST, cur_distance, predict_speed, curr_sensitivity, alarm_level);
 
             if (alarm_level != 0)
             {
@@ -156,6 +165,9 @@ void logic_Task(void *param)
                     beeper.begin(BEEPER_ON_TIME, BEEPER_OFF_MIN_TIME + (1 - alarm_level) * (BEEPER_OFF_MAX_TIME - BEEPER_OFF_MIN_TIME), 1);
             }
         }
+        else
+            ESP_LOGI("Logic", "ALARM_MAX_DIST:%0.2f, cur_distance:%0.2f, predict_speed: %+0.2f, param_sensitivity: %0.2f, curr_sensitivity: %0.2f, FULLSTOP_SPD_THRESHHOLD: %0.2f",
+                     ALARM_MAX_DIST, cur_distance, predict_speed, parameters.sensitivity, curr_sensitivity, FULLSTOP_SPD_THRESHHOLD);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
@@ -178,6 +190,10 @@ void voice_interface_Task(void *param)
             case ASR_PRO_Battery_Inquiry:
                 ESP_LOGI("voice_interface_Task", "bat: %0.2f %%", battery.get_percentage());
                 asr_pro.send_cmd(ASR_PRO_Battery_Answer, battery.get_percentage());
+                break;
+            case ASR_PRO_Speed_Inquiry:
+                ESP_LOGI("voice_interface_Task", "spd: %0.2f m/s", predict_speed);
+                asr_pro.send_cmd(ASR_PRO_Speed_Answer, predict_speed * 100);
                 break;
             case ASR_PRO_Sensitivity_Set:
                 parameters.sensitivity = received_msg.data / 100.0;

@@ -1,8 +1,12 @@
 #pragma once
 
 // Super parameters
-#define FULLSTOP_SPD_THRESHHOLD 0.07
-#define MAXSPD_THRESHHOLD 0.5
+#define FULLSTOP_SPD_THRESHHOLD_MIN 0.005
+#define FULLSTOP_SPD_THRESHHOLD_MAX 0.05
+#define FULLSTOP_SPD_THRESHHOLD (FULLSTOP_SPD_THRESHHOLD_MIN +  \
+                                 (1 - parameters.sensitivity) * \
+                                     (FULLSTOP_SPD_THRESHHOLD_MAX - FULLSTOP_SPD_THRESHHOLD_MIN))
+#define MAXSPD_THRESHHOLD 0.1
 #define SENSITIVITY_MAX_DIST 5000 // mm
 #define SENSITIVITY_MIN_DIST 300  // mm
 #define ALARM_MAX_DIST (SENSITIVITY_MIN_DIST + curr_sensitivity * \
@@ -18,7 +22,7 @@
 
 typedef struct
 {
-    float sensitivity = 0.4; // 0~1
+    float sensitivity = 1; // 0~1
     bool Alarm_sw = 1;
 } Parameters;
 
