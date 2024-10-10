@@ -1,0 +1,271 @@
+#include "asr.h"
+extern "C"
+{
+  void *__dso_handle = 0;
+}
+#include "setup.h"
+#include "myLib/asr_event.h"
+#include "HardwareSerial.h"
+#include "myLib/Protocal/Protocal.h"
+
+#define MID_SENSITIVITY 70
+#define MIN_SENSITIVITY 40
+
+uint32_t snid;
+void ASR_CODE();
+void serial_recieve(void *ptr_src);
+void protocal_send(uint8_t cmd, uint8_t data = 0);
+void stimer_1(TimerHandle_t xTimer);
+TimerHandle_t softtimer_1 = NULL;
+
+//{speak:Linda-英语女声,vol:10,speed:8,platform:haohaodada,version:V3}
+//{playid:10001,voice:Welcome to use navy sense}
+//{playid:10002,voice:Standby}
+//{ID:1,keyword:"唤醒词",ASR:"Navy",ASRTO:"Yes"}
+
+//{ID:10250,keyword:"命令词",ASR:"Maximum voice",ASRTO:"Adjust the volume to maximum"}
+//{ID:10251,keyword:"命令词",ASR:"Medium voice",ASRTO:"Adjust the volume to medium"}
+//{ID:10252,keyword:"命令词",ASR:"Minimum voice",ASRTO:"Adjust the volume to the minimum"}
+/*描述该功能...
+ */
+void ASR_CODE()
+{
+  // set_state_enter_wakeup(10000);
+  switch (snid)
+  {
+  case 3:
+    Serial.print("Alarm on");
+    protocal_send(ASR_PRO_Alarm_Switch_Set, 1);
+    break;
+  case 4:
+    Serial.print("Alarm off");
+    protocal_send(ASR_PRO_Alarm_Switch_Set, 0);
+    break;
+  case 5:
+    Serial.print("Maximum sensitivity");
+    protocal_send(ASR_PRO_Sensitivity_Set, 100);
+    break;
+  case 6:
+    Serial.print("Medium sensitivity");
+    protocal_send(ASR_PRO_Sensitivity_Set, MID_SENSITIVITY);
+    break;
+  case 7:
+    Serial.print("Minimum sensitivity");
+    protocal_send(ASR_PRO_Sensitivity_Set, MIN_SENSITIVITY);
+    break;
+  case 8:
+    Serial.print("Check distance");
+    protocal_send(ASR_PRO_Distance_Inquiry);
+    break;
+  case 9:
+    Serial.print("Check battery");
+    protocal_send(ASR_PRO_Battery_Inquiry);
+    break;
+  case 10:
+    Serial.print("Check speed");
+    protocal_send(ASR_PRO_Speed_Inquiry);
+    break;
+  default:
+    break;
+  }
+}
+
+void setup()
+{
+  //{ID:2,keyword:"命令词",ASR:"What is the battery level",ASRTO:""}
+  //{ID:3,keyword:"命令词",ASR:"turn on alarm",ASRTO:""}
+  //{ID:4,keyword:"命令词",ASR:"turn off  alarm",ASRTO:""}
+  //{ID:5,keyword:"命令词",ASR:"Maximum sensitivity",ASRTO:""}
+  //{ID:6,keyword:"命令词",ASR:"Medium sensitivity",ASRTO:""}
+  //{ID:7,keyword:"命令词",ASR:"Minimum sensitivity",ASRTO:""}
+  //{ID:8,keyword:"命令词",ASR:"Check distance",ASRTO:""}
+  //{ID:9,keyword:"命令词",ASR:"Check battery",ASRTO:""}
+  //{ID:10,keyword:"命令词",ASR:"Check speed",ASRTO:""}
+  setPinFun(2, FORTH_FUNCTION);
+  setPinFun(3, FORTH_FUNCTION);
+  Serial1.begin(115200);
+  setPinFun(13, SECOND_FUNCTION);
+  setPinFun(14, SECOND_FUNCTION);
+  Serial.begin(115200);
+
+  //{playid:10084,voice:zero}
+  //{playid:10085,voice:one}
+  //{playid:10086,voice:two}
+  //{playid:10087,voice:three}
+  //{playid:10088,voice:four}
+  //{playid:10089,voice:five}
+  //{playid:10090,voice:six}
+  //{playid:10091,voice:seven}
+  //{playid:10092,voice:eight}
+  //{playid:10093,voice:nine}
+  //{playid:10094,voice:ten}
+  //{playid:10095,voice:hundred}
+  //{playid:10096,voice:thousand}
+  //{playid:10099,voice:negative}
+  //{playid:10100,voice:point}
+}
+
+void hardware_init()
+{
+  // 需要操作系统启动后初始化的内容
+  vol_set(1);
+  set_wakeup_forever();
+  protocal_send(ASR_PRO_Ready);
+  delay(500);
+  xTaskCreate(serial_recieve, "serial_recieve", 128, NULL, 4, NULL);
+  softtimer_1 = xTimerCreate("stimer_1", 500 / 2, 1, 0, stimer_1);
+  vTaskDelete(NULL);
+}
+
+void sys_sleep_hook()
+{
+  // protocal_send(ASR_PRO_Ready);
+}
+
+void protocal_send(uint8_t cmd, uint8_t src_data = 0)
+{
+  // char buffer[30];
+  // sprintf(buffer, "sending cmd %d, data %d\n", cmd, src_data);
+  // Serial.print(buffer);
+
+  ASR_PRO_cmd_frame send_frame(cmd, src_data);
+  for (int i = 0; i < sizeof(ASR_PRO_cmd_frame); i++)
+  {
+    Serial1.write(((uint8_t *)&send_frame)[i]);
+    // Serial.write(((uint8_t *)&send_frame)[i]);
+  }
+}
+void serial_recieve(void *ptr_src)
+{
+  while (1)
+  {
+    delay(2);
+    if (Serial1.available() >= sizeof(ASR_PRO_cmd_frame))
+    {
+      if (Serial1.read() == ASR_PRO_SOF)
+      {
+        ASR_PRO_cmd_frame recv_frame;
+        for (int i = 1; i < sizeof(ASR_PRO_cmd_frame); i++)
+        {
+          ((uint8_t *)&recv_frame)[i] = (uint8_t)Serial1.read();
+        }
+
+        switch (recv_frame.cmd)
+        {
+        case ASR_PRO_SYS_Ready:
+          //{playid:10500,voice:System ready}
+          play_audio(10500);
+          break;
+        case ASR_PRO_Battery_Answer:
+          if (recv_frame.data >= 95)
+            //{playid:10501,voice:Battery is full}
+            play_audio(10501);
+          else if (recv_frame.data >= 90)
+            //{playid:10502,voice:Battery is ninety percent}
+            play_audio(10502);
+          else if (recv_frame.data >= 80)
+            //{playid:10503,voice:Battery is eighty percent}
+            play_audio(10503);
+          else if (recv_frame.data >= 70)
+            //{playid:10504,voice:Battery is seventy percent}
+            play_audio(10504);
+          else if (recv_frame.data >= 60)
+            //{playid:10505,voice:Battery is sixty percent}
+            play_audio(10505);
+          else if (recv_frame.data >= 50)
+            //{playid:10506,voice:Battery is fifty percent}
+            play_audio(10506);
+          else if (recv_frame.data >= 40)
+            //{playid:10507,voice:Battery is fourty percent}
+            play_audio(10507);
+          else if (recv_frame.data >= 30)
+            //{playid:10508,voice:Battery is thirty percent}
+            play_audio(10508);
+          else if (recv_frame.data >= 20)
+            //{playid:10509,voice:Battery is twenty percent}
+            play_audio(10509);
+          else if (recv_frame.data >= 10)
+            //{playid:10510,voice:Battery is ten percent}
+            play_audio(10510);
+          else
+          {
+            //{playid:10511,voice:Battery is}
+            play_audio(10511);
+            play_num((int64_t)(recv_frame.data * 100), 0);
+            //{playid:10550,voice:percent}
+            play_audio(10550);
+          }
+          break;
+        case ASR_PRO_Sensitivity_Answer:
+          if (recv_frame.data >= 100)
+            //{playid:10512,voice:Sensitivity set to maximum}
+            play_audio(10512);
+          else if (recv_frame.data > MIN_SENSITIVITY)
+            //{playid:10513,voice:Sensitivity set to medium}
+            play_audio(10513);
+          else
+            //{playid:10514,voice:Sensitivity set to minimum}
+            play_audio(10514);
+          break;
+        case ASR_PRO_Alarm_Switch_Answer:
+          if (recv_frame.data == 0)
+            //{playid:10515,voice:Alarm is off}
+            play_audio(10515);
+          else
+            //{playid:10516,voice:Alarm is on}
+            play_audio(10516);
+          break;
+        case ASR_PRO_Distance_Answer:
+        {
+          //{playid:10517,voice:Current Distance is}
+          play_audio(10517);
+          float distance_meters = (recv_frame.data * 20.0 / 1000);
+          if (distance_meters < 0.2)
+          {
+            //{playid:10518,voice:not available}
+            play_audio(10518);
+          }
+          else
+          {
+            play_num((int64_t)(distance_meters * 100), 0); // 2cm corresponding to one here
+            //{playid:10519,voice:meters}
+            play_audio(10519);
+          }
+        }
+        break;
+        case ASR_PRO_Speed_Answer:
+        {
+          //{playid:10520,voice:Current speed is}
+          play_audio(10520);
+          float curr_spd = (recv_frame.data / 100.0);
+          play_num((int64_t)(curr_spd * 100), 0);
+          //{playid:10521,voice:meters per second}
+          play_audio(10521);
+        }
+        break;
+        case ASR_PRO_Low_Battery:
+          //{playid:10522,voice:Battery low, please charge}
+          play_audio(10522);
+          break;
+        case ASR_PRO_Alarm_Pause_Answer:
+          if (recv_frame.data == 0)
+            //{playid:10523,voice:Alarm is paused}
+            play_audio(10523);
+          else
+            //{playid:10524,voice:Alarm is resumed}
+            play_audio(10524);
+          break;
+        }
+      }
+    }
+  }
+  vTaskDelete(NULL);
+}
+
+void stimer_1(TimerHandle_t xTimer)
+{
+  protocal_send(ASR_PRO_Ready);
+}
+
+
+/** edittype="asr_procode" */
