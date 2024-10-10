@@ -14,4 +14,6 @@ Build:
 To build this project, install VS Code and ESP IDF plugin, configure ESP IDF to version 5.2.2. 
 Then simply clone and open this project folder in VS code. Select IDF 5.2.2 at lower left corner, click build icon at the right of IDF version selection.
 
+To build the ASR project for voice command MCU, install the "ASR IDE.exe" included in the ASR-PRO folder and open NaviSense.hd using the IDE.
+
 
